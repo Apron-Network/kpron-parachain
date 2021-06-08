@@ -19,6 +19,10 @@ use sc_service::{
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
+use sp_api::RuntimeApiInfo;
+
+const DEFAULT_PARA_ID: u32 = 2019;
+const DEFAULT_RELAY_CHAIN: &str = "kusama";
 
 fn load_spec(
 	id: &str,
@@ -67,8 +71,8 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, self.run.parachain_id.unwrap_or(200).into(),
-				  self.run.relay_chain.clone().unwrap_or(String::from("westend")).into())
+		load_spec(id, self.run.parachain_id.unwrap_or(DEFAULT_PARA_ID).into(),
+				  self.run.relay_chain.clone().unwrap_or(String::from(DEFAULT_RELAY_CHAIN)).into())
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -203,10 +207,10 @@ pub fn run() -> Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let block: Block = generate_genesis_block(&load_spec(
+			let block: crate::service::Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or_default(),
-				params.parachain_id.unwrap_or(200).into(),
-				params.relay_chain.clone().unwrap_or(String::from("westend")).into()
+				params.parachain_id.unwrap_or(DEFAULT_PARA_ID).into(),
+				params.relay_chain.clone().unwrap_or(String::from(DEFAULT_RELAY_CHAIN)).into()
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -258,9 +262,6 @@ pub fn run() -> Result<()> {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 
 			runner.run_node_until_exit(|config| async move {
-				// TODO
-				let key = sp_core::Pair::generate().0;
-
 				let para_id =
 					chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
 
@@ -271,12 +272,12 @@ pub fn run() -> Result<()> {
 						.chain(cli.relaychain_args.iter()),
 				);
 
-				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(200));
+				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(DEFAULT_PARA_ID));
 
 				let parachain_account =
 					AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-				let block: Block =
+				let block: crate::service::Block =
 					generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
 				let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
@@ -300,7 +301,11 @@ pub fn run() -> Result<()> {
 					}
 				);
 
-				crate::service::start_node(config, key, polkadot_config, id)
+				crate::service::start_node::<RuntimeApi, ParachainRuntimeExecutor>(
+					config,
+					polkadot_config,
+					id,
+				)
 					.await
 					.map(|r| r.0)
 					.map_err(Into::into)

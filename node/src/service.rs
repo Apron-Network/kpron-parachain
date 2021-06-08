@@ -8,30 +8,40 @@ use kpron_runtime::RuntimeApi;
 use cumulus_client_consensus_aura::{
 	build_aura_consensus, BuildAuraConsensusParams, SlotProportion,
 };
-use cumulus_client_consensus_common::ParachainConsensus;
+use cumulus_client_consensus_common::{
+	ParachainConsensus, ParachainCandidate, ParachainBlockImport,
+};
 use cumulus_client_network::build_block_announce_validator;
 use cumulus_client_service::{
 	prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
-use cumulus_primitives_core::ParaId;
+use cumulus_primitives_core::{
+	ParaId, relay_chain::v1::{Hash as PHash, PersistedValidationData},
+};
 
 // Polkadot Imports
 use polkadot_primitives::v1::CollatorPair;
 
 // Substrate Imports
 use sc_client_api::ExecutorProvider;
-pub use sc_executor::NativeExecutor;
 use sc_executor::native_executor_instance;
 use sc_network::NetworkService;
 use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
-use sp_api::ConstructRuntimeApi;
-use sp_consensus::SlotData;
+use sp_api::{ConstructRuntimeApi, ApiExt};
+use sp_consensus::{
+	BlockImportParams, BlockOrigin, SlotData,
+	import_queue::{BasicQueue, CacheKeyId, Verifier as VerifierT},
+};
+use sp_consensus_aura::{sr25519::AuthorityId as AuraId, AuraApi};
 use sp_keystore::SyncCryptoStorePtr;
-use sp_runtime::traits::BlakeTwo256;
+use sp_runtime::{traits::{BlakeTwo256, Header as HeaderT}, generic::BlockId};
 use substrate_prometheus_endpoint::Registry;
+use futures::lock::Mutex;
+use cumulus_client_consensus_relay_chain::Verifier as RelayChainVerifier;
 
-// Runtime type overrides
+pub use sc_executor::NativeExecutor;
+
 type BlockNumber = u32;
 type Header = sp_runtime::generic::Header<BlockNumber, sp_runtime::traits::BlakeTwo256>;
 pub type Block = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
@@ -208,7 +218,6 @@ where
 
 	let relay_chain_full_node = cumulus_client_service::build_polkadot_full_node(
 		polkadot_config,
-		collator_key.clone(),
 		telemetry_worker_handle,
 	)
 	.map_err(|e| match e {
@@ -230,14 +239,14 @@ where
 	let prometheus_registry = parachain_config.prometheus_registry().cloned();
 	let transaction_pool = params.transaction_pool.clone();
 	let mut task_manager = params.task_manager;
-	let import_queue = params.import_queue;
-	let (network, network_status_sinks, system_rpc_tx, start_network) =
+	let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
+	let (network, system_rpc_tx, start_network) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &parachain_config,
 			client: client.clone(),
 			transaction_pool: transaction_pool.clone(),
 			spawn_handle: task_manager.spawn_handle(),
-			import_queue,
+			import_queue: import_queue.clone(),
 			on_demand: None,
 			block_announce_validator_builder: Some(Box::new(|_| block_announce_validator)),
 		})?;
@@ -256,7 +265,6 @@ where
 		keystore: params.keystore_container.sync_keystore(),
 		backend: backend.clone(),
 		network: network.clone(),
-		network_status_sinks,
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;
@@ -287,10 +295,10 @@ where
 			announce_block,
 			client: client.clone(),
 			task_manager: &mut task_manager,
-			collator_key,
 			relay_chain_full_node,
 			spawner,
 			parachain_consensus,
+			import_queue,
 		};
 
 		start_collator(params).await?;
@@ -300,7 +308,7 @@ where
 			announce_block,
 			task_manager: &mut task_manager,
 			para_id: id,
-			polkadot_full_node: relay_chain_full_node,
+			relay_chain_full_node,
 		};
 
 		start_full_node(params)?;
@@ -326,53 +334,40 @@ pub fn parachain_build_import_queue(
 > {
 	let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
-	let block_import = cumulus_client_consensus_aura::AuraBlockImport::<
-		_,
-		_,
-		_,
-		sp_consensus_aura::sr25519::AuthorityPair,
-	>::new(client.clone(), client.clone());
+	cumulus_client_consensus_aura::import_queue::<sp_consensus_aura::sr25519::AuthorityPair, _, _, _, _, _, _>(
+		cumulus_client_consensus_aura::ImportQueueParams {
+			block_import: client.clone(),
+			client: client.clone(),
+			create_inherent_data_providers: move |_, _| async move {
+				let time = sp_timestamp::InherentDataProvider::from_system_time();
 
-	cumulus_client_consensus_aura::import_queue::<
-		sp_consensus_aura::sr25519::AuthorityPair,
-		_,
-		_,
-		_,
-		_,
-		_,
-		_,
-	>(cumulus_client_consensus_aura::ImportQueueParams {
-		block_import,
-		client: client.clone(),
-		create_inherent_data_providers: move |_, _| async move {
-			let time = sp_timestamp::InherentDataProvider::from_system_time();
+				let slot =
+					sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+						*time,
+						slot_duration.slot_duration(),
+					);
 
-			let slot =
-				sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
-					*time,
-					slot_duration.slot_duration(),
-				);
-
-			Ok((time, slot))
+				Ok((time, slot))
+			},
+			registry: config.prometheus_registry().clone(),
+			can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
+				client.executor().clone(),
+			),
+			spawner: &task_manager.spawn_essential_handle(),
+			telemetry,
 		},
-		registry: config.prometheus_registry().clone(),
-		can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
-		spawner: &task_manager.spawn_essential_handle(),
-		telemetry,
-	})
+	)
 	.map_err(Into::into)
 }
 
 /// Start a normal parachain node.
 pub async fn start_node(
 	parachain_config: Configuration,
-	collator_key: CollatorPair,
 	polkadot_config: Configuration,
 	id: ParaId,
 ) -> sc_service::error::Result<(TaskManager, Arc<TFullClient<Block, RuntimeApi, ParachainRuntimeExecutor>>)> {
 	start_node_impl::<RuntimeApi, ParachainRuntimeExecutor, _, _, _>(
 		parachain_config,
-		collator_key,
 		polkadot_config,
 		id,
 		|_| Default::default(),

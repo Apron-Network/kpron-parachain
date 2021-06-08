@@ -3,7 +3,7 @@ use kpron_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use sp_core::crypto::Ss58Codec;
 
