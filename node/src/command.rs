@@ -1,25 +1,23 @@
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
-	service::{new_partial, ParachainRuntimeExecutor}
+	service::{
+		KpronParachainRuntimeExecutor, new_partial, Block,
+	},
 };
 use codec::Encode;
-use cumulus_primitives_core::ParaId;
 use cumulus_client_service::genesis::generate_genesis_block;
+use cumulus_primitives_core::ParaId;
 use log::info;
-use kpron_runtime::{RuntimeApi, Block};
 use polkadot_parachain::primitives::AccountIdConversion;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
 	NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
 };
-use sc_service::{
-	config::{BasePath, PrometheusConfig}
-};
+use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
-use sp_api::RuntimeApiInfo;
 
 const DEFAULT_PARA_ID: u32 = 2019;
 const DEFAULT_RELAY_CHAIN: &str = "kusama";
@@ -27,12 +25,11 @@ const DEFAULT_RELAY_CHAIN: &str = "kusama";
 fn load_spec(
 	id: &str,
 	para_id: ParaId,
-	relay_chain: String
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
-		"kpron" => Box::new(chain_spec::kpron_config(para_id, relay_chain)),
+		"" | "kpron" => Box::new(chain_spec::kpron_config(para_id, relay_chain)),
 		"kpron-dev" => Box::new(chain_spec::development_config(para_id, relay_chain)),
-		"" | "kpron-local" => Box::new(chain_spec::local_testnet_config(para_id, relay_chain)),
+		"kpron-local" => Box::new(chain_spec::local_testnet_config(para_id, relay_chain)),
 		path => Box::new(chain_spec::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -71,8 +68,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, self.run.parachain_id.unwrap_or(DEFAULT_PARA_ID).into(),
-				  self.run.relay_chain.clone().unwrap_or(String::from(DEFAULT_RELAY_CHAIN)).into())
+		load_spec(id, self.run.parachain_id.unwrap_or(DEFAULT_PARA_ID).into())
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -132,13 +128,9 @@ macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<
-				RuntimeApi,
-				ParachainRuntimeExecutor,
-				_
-			>(
+			let $components = new_partial::<kpron_runtime::RuntimeApi, KpronRuntimeExecutor, _>(
 				&$config,
-				crate::service::parachain_build_import_queue,
+				crate::service::statemint_build_import_queue,
 			)?;
 			let task_manager = $components.task_manager;
 			{ $( $code )* }.map(|v| (v, task_manager))
@@ -199,9 +191,6 @@ pub fn run() -> Result<()> {
 		Some(Subcommand::Revert(cmd)) => construct_async_run!(|components, cli, cmd, config| {
 			Ok(cmd.run(components.client, components.backend))
 		}),
-		Some(Subcommand::Key(cmd)) => {
-			cmd.run(&cli)
-		},
 		Some(Subcommand::ExportGenesisState(params)) => {
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
@@ -210,7 +199,6 @@ pub fn run() -> Result<()> {
 			let block: crate::service::Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or_default(),
 				params.parachain_id.unwrap_or(DEFAULT_PARA_ID).into(),
-				params.relay_chain.clone().unwrap_or(String::from(DEFAULT_RELAY_CHAIN)).into()
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -247,17 +235,16 @@ pub fn run() -> Result<()> {
 			}
 
 			Ok(())
-		},
+		}
 		Some(Subcommand::Benchmark(cmd)) => {
 			if cfg!(feature = "runtime-benchmarks") {
 				let runner = cli.create_runner(cmd)?;
-
-				runner.sync_run(|config| cmd.run::<Block, ParachainRuntimeExecutor>(config))
+				runner.sync_run(|config| cmd.run::<Block, KpronRuntimeExecutor>(config))
 			} else {
 				Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`.".into())
 			}
-		},
+		}
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 
@@ -282,12 +269,9 @@ pub fn run() -> Result<()> {
 				let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
 				let task_executor = config.task_executor.clone();
-				let polkadot_config = SubstrateCli::create_configuration(
-					&polkadot_cli,
-					&polkadot_cli,
-					task_executor,
-				)
-				.map_err(|err| format!("Relay chain argument error: {}", err))?;
+				let polkadot_config =
+					SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
+						.map_err(|err| format!("Relay chain argument error: {}", err))?;
 
 				info!("Parachain id: {:?}", id);
 				info!("Parachain Account: {}", parachain_account);
@@ -301,7 +285,7 @@ pub fn run() -> Result<()> {
 					}
 				);
 
-				crate::service::start_node::<RuntimeApi, ParachainRuntimeExecutor>(
+				crate::service::start_node::<kpron_runtime::RuntimeApi, KpronRuntimeExecutor>(
 					config,
 					polkadot_config,
 					id,

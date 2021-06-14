@@ -1,6 +1,5 @@
 use crate::chain_spec;
 use sc_cli;
-use cumulus_client_cli;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -36,9 +35,6 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// key handle keystore.
-	Key(sc_cli::KeySubcommand),
-
 	/// The custom benchmark subcommmand benchmarking runtime pallets.
 	#[structopt(name = "benchmark", about = "Benchmark runtime pallets.")]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
@@ -56,10 +52,6 @@ pub struct ExportGenesisStateCommand {
 	/// Default: 100
 	#[structopt(long)]
 	pub parachain_id: Option<u32>,
-
-	/// Id of the parachain this collator collates for.
-	#[structopt(long = "relay-chain")]
-	pub relay_chain: Option<String>,
 
 	/// Write output in binary. Default is to write in hex.
 	#[structopt(short, long)]
@@ -85,41 +77,6 @@ pub struct ExportGenesisWasmCommand {
 	#[structopt(long)]
 	pub chain: Option<String>,
 }
-/// The `run` command used to run a node.
-#[derive(Debug, StructOpt)]
-pub struct RunCmd {
-	/// The cumulus RunCmd inherents from sc_cli's
-	#[structopt(flatten)]
-	pub base: sc_cli::RunCmd,
-
-	/// Id of the parachain this collator collates for.
-	#[structopt(long = "parachain-id")]
-	pub parachain_id: Option<u32>,
-
-	/// Id of the parachain this collator collates for.
-	#[structopt(long = "relay-chain")]
-	pub relay_chain: Option<String>,
-
-	/// Run node as collator.
-	///
-	/// Note that this is the same as running with `--validator`.
-	#[structopt(long, conflicts_with = "validator")]
-	pub collator: bool,
-}
-
-impl RunCmd {
-	/// Create a [`NormalizedRunCmd`] which merges the `collator` cli argument into `validator` to have only one.
-	pub fn normalize(&self) -> cumulus_client_cli::NormalizedRunCmd {
-		let mut new_base = self.base.clone();
-
-		new_base.validator = self.base.validator || self.collator;
-
-		cumulus_client_cli::NormalizedRunCmd {
-			base: new_base,
-			parachain_id: self.parachain_id,
-		}
-	}
-}
 
 #[derive(Debug, StructOpt)]
 #[structopt(settings = &[
@@ -132,7 +89,7 @@ pub struct Cli {
 	pub subcommand: Option<Subcommand>,
 
 	#[structopt(flatten)]
-	pub run: RunCmd,
+	pub run: cumulus_client_cli::RunCmd,
 
 	/// Relaychain arguments
 	#[structopt(raw = true)]

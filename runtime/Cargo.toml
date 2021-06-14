@@ -47,6 +47,7 @@ pallet-multisig = { git = "https://github.com/paritytech/substrate", default-fea
 pallet-proxy = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 pallet-session = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
+pallet-session-benchmarking = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
@@ -65,7 +66,7 @@ cumulus-primitives-utility = { git = 'https://github.com/paritytech/cumulus.git'
 cumulus-pallet-dmp-queue = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 cumulus-pallet-xcmp-queue = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 cumulus-pallet-xcm = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
-cumulus-ping = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
+#cumulus-ping = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 pallet-collator-selection = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 statemint-common = { git = 'https://github.com/paritytech/cumulus.git', branch = 'master', default-features = false }
 
@@ -98,6 +99,7 @@ runtime-benchmarks = [
 	'pallet-balances/runtime-benchmarks',
 	'pallet-multisig/runtime-benchmarks',
 	'pallet-proxy/runtime-benchmarks',
+	'pallet-session-benchmarking/runtime-benchmarks',
 	'pallet-uniques/runtime-benchmarks',
 	'pallet-utility/runtime-benchmarks',
 	'pallet-timestamp/runtime-benchmarks',
@@ -146,7 +148,7 @@ std = [
 	"cumulus-pallet-xcm/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
-	"cumulus-ping/std",
+#	"cumulus-ping/std",
 	"xcm/std",
 	"xcm-builder/std",
 	"xcm-executor/std",

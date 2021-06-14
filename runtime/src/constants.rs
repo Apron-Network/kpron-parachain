@@ -9,7 +9,7 @@ pub mod currency {
 
 	pub const SYMBOL: &str = "KPN";
 	pub const DECIMALS: u8 = 12;
-	pub const KPN: Balance = 10 ** DECIMALS;
+	pub const KPN: Balance = 1_000_000_000_000;
 	pub const CENTS: Balance = KPN / 30_000;
 	pub const GRAND: Balance = CENTS * 100_000;
 	pub const MILLICENTS: Balance = CENTS / 1_000;
@@ -20,7 +20,7 @@ pub mod currency {
 	}
 }
 pub mod address {
-	pub const SS58Prefix: u8 = 42;
+	pub const SS58_PREFIX: u8 = 42;
 }
 
 /// Fee-related.

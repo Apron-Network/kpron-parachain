@@ -2,7 +2,7 @@
 panic = 'unwind'
 
 [workspace]
-resolver = "2"
+#resolver = "2"
 members = [
     'node',
     'runtime',

@@ -1,5 +1,4 @@
 use cumulus_primitives_core::ParaId;
-use kpron_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -7,7 +6,7 @@ use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use sp_core::crypto::Ss58Codec;
 use kpron_runtime::constants::currency::{EXISTENTIAL_DEPOSIT, SYMBOL, DECIMALS};
-use kpron_runtime::constants::address::{SS58Prefix};
+use kpron_runtime::constants::address::{SS58_PREFIX};
 use statemint_common::{
 	BlockNumber, Signature, AccountId, Balance, Index, Hash, AuraId, Header,
 };
@@ -275,6 +274,7 @@ fn generate_genesis(
 		},
 		pallet_aura: Default::default(),
 		cumulus_pallet_aura_ext: Default::default(),
+		parachain_system: Default::default(),
 	}
 }
 
@@ -311,6 +311,7 @@ fn test_generate_genesis(
 		},
 		pallet_aura: Default::default(),
 		cumulus_pallet_aura_ext: Default::default(),
+		parachain_system: Default::default(),
 	}
 }
 
