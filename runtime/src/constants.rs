@@ -1,26 +1,16 @@
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: Apache-2.0
-
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+pub use currency::*;
+pub use address::*;
 
 pub mod currency {
 	use node_primitives::Balance;
 
 	/// The existential deposit. Set to 1/10 of its parent Relay Chain (v9020).
-	pub const EXISTENTIAL_DEPOSIT: Balance = CENTS / 10;
+	pub const EXISTENTIAL_DEPOSIT: Balance = KPN;
 
-	pub const UNITS: Balance = 1_000_000_000_000;
-	pub const CENTS: Balance = UNITS / 30_000;
+	pub const SYMBOL: &str = "KPN";
+	pub const DECIMALS: u8 = 12;
+	pub const KPN: Balance = 10 ** DECIMALS;
+	pub const CENTS: Balance = KPN / 30_000;
 	pub const GRAND: Balance = CENTS * 100_000;
 	pub const MILLICENTS: Balance = CENTS / 1_000;
 
@@ -28,6 +18,9 @@ pub mod currency {
 		// map to 1/10 of what the kusama relay chain charges (v9020)
 		(items as Balance * 2_000 * CENTS + (bytes as Balance) * 100 * MILLICENTS) / 10
 	}
+}
+pub mod address {
+	pub const SS58Prefix: u8 = 42;
 }
 
 /// Fee-related.
