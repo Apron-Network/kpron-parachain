@@ -55,6 +55,10 @@ pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/parityt
 pallet-uniques = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 pallet-utility = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 
+pallet-contracts = { git = 'https://github.com/paritytech/substrate.git', branch = 'master', default-features = false }
+pallet-contracts-primitives = { git = 'https://github.com/paritytech/substrate.git', branch = 'master', default-features = false }
+pallet-contracts-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'master', default-features = false }
+
 node-primitives = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 max-encoded-len = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 
@@ -139,6 +143,9 @@ std = [
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
+	"pallet-contracts/std",
+	"pallet-contracts-primitives/std",
+	"pallet-contracts-rpc-runtime-api/std",
 	"parachain-info/std",
 	"cumulus-pallet-aura-ext/std",
 	"pallet-collator-selection/std",

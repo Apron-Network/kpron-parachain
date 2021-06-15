@@ -3,8 +3,6 @@ pub use address::*;
 
 pub mod currency {
 	use node_primitives::Balance;
-
-	/// The existential deposit. Set to 1/10 of its parent Relay Chain (v9020).
 	pub const EXISTENTIAL_DEPOSIT: Balance = KPN;
 
 	pub const SYMBOL: &str = "KPN";

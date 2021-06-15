@@ -20,16 +20,16 @@ use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
 const DEFAULT_PARA_ID: u32 = 2019;
-const DEFAULT_RELAY_CHAIN: &str = "kusama";
 
 fn load_spec(
 	id: &str,
 	para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
-		"" | "kpron" => Box::new(chain_spec::kpron_config(para_id, relay_chain)),
-		"kpron-dev" => Box::new(chain_spec::development_config(para_id, relay_chain)),
-		"kpron-local" => Box::new(chain_spec::local_testnet_config(para_id, relay_chain)),
+		"" | "kpron" => Box::new(chain_spec::kpron_config(para_id)),
+		"kpron-dev" => Box::new(chain_spec::kpron_dev_config(para_id)),
+		"kpron-local" => Box::new(chain_spec::kpron_local_config(para_id)),
+		"kpron-testnet" => Box::new(chain_spec::kpron_testnet_config(para_id)),
 		path => Box::new(chain_spec::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -128,9 +128,9 @@ macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<kpron_runtime::RuntimeApi, KpronRuntimeExecutor, _>(
+			let $components = new_partial::<kpron_runtime::RuntimeApi, KpronParachainRuntimeExecutor, _>(
 				&$config,
-				crate::service::statemint_build_import_queue,
+				crate::service::kpron_build_import_queue,
 			)?;
 			let task_manager = $components.task_manager;
 			{ $( $code )* }.map(|v| (v, task_manager))
@@ -239,7 +239,7 @@ pub fn run() -> Result<()> {
 		Some(Subcommand::Benchmark(cmd)) => {
 			if cfg!(feature = "runtime-benchmarks") {
 				let runner = cli.create_runner(cmd)?;
-				runner.sync_run(|config| cmd.run::<Block, KpronRuntimeExecutor>(config))
+				runner.sync_run(|config| cmd.run::<Block, KpronParachainRuntimeExecutor>(config))
 			} else {
 				Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`.".into())
@@ -285,7 +285,7 @@ pub fn run() -> Result<()> {
 					}
 				);
 
-				crate::service::start_node::<kpron_runtime::RuntimeApi, KpronRuntimeExecutor>(
+				crate::service::start_node::<kpron_runtime::RuntimeApi, KpronParachainRuntimeExecutor>(
 					config,
 					polkadot_config,
 					id,

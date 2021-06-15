@@ -28,7 +28,7 @@ use frame_system::{
 };
 use statemint_common::{
 	BlockNumber, Signature, AccountId, Balance, Index, Hash, AuraId, Header,
-	NORMAL_DISPATCH_RATIO, AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, SLOT_DURATION, HOURS,
+	NORMAL_DISPATCH_RATIO, AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, SLOT_DURATION, HOURS, DAYS
 };
 pub use statemint_common as common;
 use statemint_common::impls::DealWithFees;
@@ -63,6 +63,9 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 use pallet_xcm::{XcmPassthrough, EnsureXcm, IsMajorityOfBody};
+
+/// Import others pallet.
+use pallet_contracts::weights::WeightInfo;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -126,23 +129,73 @@ parameter_types! {
 		})
 		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
 		.build_or_panic();
-	pub const SS58Prefix: u8 = 2;
+	pub const SS58Prefix: u8 = constants::SS58_PREFIX;
 }
 
+//TODO comment assets
 // Don't allow permission-less asset creation.
-pub struct BaseFilter;
-impl Filter<Call> for BaseFilter {
-	fn filter(c: &Call) -> bool {
-		!matches!(c,
-			Call::Assets(pallet_assets::Call::create(..)) |
-			Call::Uniques(pallet_uniques::Call::create(..))
-		)
-	}
-}
+// pub struct BaseFilter;
+// impl Filter<Call> for BaseFilter {
+// 	fn filter(c: &Call) -> bool {
+// 		!matches!(c,
+// 			Call::Assets(pallet_assets::Call::create(..)) |
+// 			Call::Uniques(pallet_uniques::Call::create(..))
+// 		)
+// 	}
+// }
+
+//TODO comment contracts
+// parameter_types! {
+// 	pub TombstoneDeposit: Balance = deposit(
+// 		1,
+// 		<pallet_contracts::Pallet<Runtime>>::contract_info_size(),
+// 	);
+// 	pub DepositPerContract: Balance = TombstoneDeposit::get();
+// 	pub const DepositPerStorageByte: Balance = deposit(0, 1);
+// 	pub const DepositPerStorageItem: Balance = deposit(1, 0);
+// 	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
+// 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
+// 	pub const SignedClaimHandicap: u32 = 2;
+// 	pub const MaxValueSize: u32 = 16 * 1024;
+// 	// The lazy deletion runs inside on_initialize.
+// 	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
+// 		RuntimeBlockWeights::get().max_block;
+// 	// The weight needed for decoding the queue should be less or equal than a fifth
+// 	// of the overall weight dedicated to the lazy deletion.
+// 	pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+// 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
+// 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
+// 		)) / 5) as u32;
+// 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
+// }
+//
+// impl pallet_contracts::Config for Runtime {
+// 	type Time = Timestamp;
+// 	type Randomness = RandomnessCollectiveFlip;
+// 	type Currency = Balances;
+// 	type Event = Event;
+// 	type RentPayment = ();
+// 	type SignedClaimHandicap = SignedClaimHandicap;
+// 	type TombstoneDeposit = TombstoneDeposit;
+// 	type DepositPerContract = DepositPerContract;
+// 	type DepositPerStorageByte = DepositPerStorageByte;
+// 	type DepositPerStorageItem = DepositPerStorageItem;
+// 	type RentFraction = RentFraction;
+// 	type SurchargeReward = SurchargeReward;
+// 	type CallStack = [pallet_contracts::Frame<Self>; 31];
+// 	type WeightPrice = pallet_transaction_payment::Module<Self>;
+// 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+// 	type ChainExtension = ();
+// 	type DeletionQueueDepth = DeletionQueueDepth;
+// 	type DeletionWeightLimit = DeletionWeightLimit;
+// 	type Schedule = Schedule;
+// }
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = BaseFilter;
+	//TODO comment assets
+	// type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = ();
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -223,66 +276,68 @@ impl pallet_transaction_payment::Config for Runtime {
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 }
 
-parameter_types! {
-	pub const AssetDeposit: Balance = KPN; // 1 KPN deposit to create asset
-	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
-	pub const StringLimit: u32 = 50;
-	/// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
-	// https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
-	pub const MetadataDepositBase: Balance = deposit(1, 68);
-	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
-	pub const ExecutiveBody: BodyId = BodyId::Executive;
-}
+//TODO comment asset
+// parameter_types! {
+// 	pub const AssetDeposit: Balance = KPN; // 1 KPN deposit to create asset
+// 	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
+// 	pub const StringLimit: u32 = 50;
+// 	/// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
+// 	// https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
+// 	pub const MetadataDepositBase: Balance = deposit(1, 68);
+// 	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+// 	pub const ExecutiveBody: BodyId = BodyId::Executive;
+// }
+//
+// /// We allow root and the Relay Chain council to execute privileged asset operations.
+// pub type AssetsForceOrigin =  EnsureOneOf<
+// 	AccountId,
+// 	EnsureRoot<AccountId>,
+// 	EnsureXcm<IsMajorityOfBody<KsmLocation, ExecutiveBody>>,
+// >;
+//
+// impl pallet_assets::Config for Runtime {
+// 	type Event = Event;
+// 	type Balance = Balance;
+// 	type AssetId = u32;
+// 	type Currency = Balances;
+// 	type ForceOrigin = AssetsForceOrigin;
+// 	type AssetDeposit = AssetDeposit;
+// 	type MetadataDepositBase = MetadataDepositBase;
+// 	type MetadataDepositPerByte = MetadataDepositPerByte;
+// 	type ApprovalDeposit = ApprovalDeposit;
+// 	type StringLimit = StringLimit;
+// 	type Freezer = ();
+// 	type Extra = ();
+// 	type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
+// }
 
-/// We allow root and the Relay Chain council to execute privileged asset operations.
-pub type AssetsForceOrigin =  EnsureOneOf<
-	AccountId,
-	EnsureRoot<AccountId>,
-	EnsureXcm<IsMajorityOfBody<KsmLocation, ExecutiveBody>>,
->;
-
-impl pallet_assets::Config for Runtime {
-	type Event = Event;
-	type Balance = Balance;
-	type AssetId = u32;
-	type Currency = Balances;
-	type ForceOrigin = AssetsForceOrigin;
-	type AssetDeposit = AssetDeposit;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
-	type ApprovalDeposit = ApprovalDeposit;
-	type StringLimit = StringLimit;
-	type Freezer = ();
-	type Extra = ();
-	type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	pub const ClassDeposit: Balance = KPN; // 1 KPN deposit to create asset class
-	pub const InstanceDeposit: Balance = KPN / 100; // 1/100 KPN deposit to create asset instance
-	pub const KeyLimit: u32 = 32;	// Max 32 bytes per key
-	pub const ValueLimit: u32 = 64;	// Max 64 bytes per value
-	pub const UniquesMetadataDepositBase: Balance = deposit(1, 129);
-	pub const AttributeDepositBase: Balance = deposit(1, 0);
-	pub const DepositPerByte: Balance = deposit(0, 1);
-}
-
-impl pallet_uniques::Config for Runtime {
-	type Event = Event;
-	type ClassId = u32;
-	type InstanceId = u32;
-	type Currency = Balances;
-	type ForceOrigin = AssetsForceOrigin;
-	type ClassDeposit = ClassDeposit;
-	type InstanceDeposit = InstanceDeposit;
-	type MetadataDepositBase = UniquesMetadataDepositBase;
-	type AttributeDepositBase = AttributeDepositBase;
-	type DepositPerByte = DepositPerByte;
-	type StringLimit = StringLimit;
-	type KeyLimit = KeyLimit;
-	type ValueLimit = ValueLimit;
-	type WeightInfo = weights::pallet_uniques::WeightInfo<Runtime>;
-}
+//TODO comment unique
+// parameter_types! {
+// 	pub const ClassDeposit: Balance = KPN; // 1 KPN deposit to create asset class
+// 	pub const InstanceDeposit: Balance = KPN / 100; // 1/100 KPN deposit to create asset instance
+// 	pub const KeyLimit: u32 = 32;	// Max 32 bytes per key
+// 	pub const ValueLimit: u32 = 64;	// Max 64 bytes per value
+// 	pub const UniquesMetadataDepositBase: Balance = deposit(1, 129);
+// 	pub const AttributeDepositBase: Balance = deposit(1, 0);
+// 	pub const DepositPerByte: Balance = deposit(0, 1);
+// }
+//
+// impl pallet_uniques::Config for Runtime {
+// 	type Event = Event;
+// 	type ClassId = u32;
+// 	type InstanceId = u32;
+// 	type Currency = Balances;
+// 	type ForceOrigin = AssetsForceOrigin;
+// 	type ClassDeposit = ClassDeposit;
+// 	type InstanceDeposit = InstanceDeposit;
+// 	type MetadataDepositBase = UniquesMetadataDepositBase;
+// 	type AttributeDepositBase = AttributeDepositBase;
+// 	type DepositPerByte = DepositPerByte;
+// 	type StringLimit = StringLimit;
+// 	type KeyLimit = KeyLimit;
+// 	type ValueLimit = ValueLimit;
+// 	type WeightInfo = weights::pallet_uniques::WeightInfo<Runtime>;
+// }
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
@@ -308,134 +363,135 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
-	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
-	pub const MaxProxies: u16 = 32;
-	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
-	pub const MaxPending: u16 = 32;
-}
-
-/// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
-pub enum ProxyType {
-	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
-	Any,
-	/// Can execute any call that does not transfer funds or assets.
-	NonTransfer,
-	/// Proxy with the ability to reject time-delay proxy announcements.
-	CancelProxy,
-	/// Assets proxy. Can execute any call from `assets`, **including asset transfers**.
-	Assets,
-	/// Owner proxy. Can execute calls related to asset ownership.
-	AssetOwner,
-	/// Asset manager. Can execute calls related to asset management.
-	AssetManager,
-	// Collator selection proxy. Can execute calls related to collator selection mechanism.
-	Collator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
-}
-impl InstanceFilter<Call> for ProxyType {
-	fn filter(&self, c: &Call) -> bool {
-		match self {
-			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(c,
-				Call::Balances(..) |
-				Call::Assets(pallet_assets::Call::transfer(..)) |
-				Call::Assets(pallet_assets::Call::transfer_keep_alive(..)) |
-				Call::Assets(pallet_assets::Call::force_transfer(..)) |
-				Call::Assets(pallet_assets::Call::transfer_ownership(..)) |
-				Call::Assets(pallet_assets::Call::approve_transfer(..)) |
-				Call::Assets(pallet_assets::Call::transfer_approved(..)) |
-				Call::Uniques(pallet_uniques::Call::transfer(..)) |
-				Call::Uniques(pallet_uniques::Call::transfer_ownership(..)) |
-				Call::Uniques(pallet_uniques::Call::approve_transfer(..))
-			),
-			ProxyType::CancelProxy => matches!(c,
-				Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
-				Call::Utility(..) |
-				Call::Multisig(..)
-			),
-			ProxyType::Assets => {
-				matches!(c, Call::Assets(..) | Call::Utility(..) | Call::Multisig(..) | Call::Uniques(..))
-			}
-			ProxyType::AssetOwner => matches!(c,
-				Call::Assets(pallet_assets::Call::create(..)) |
-				Call::Assets(pallet_assets::Call::destroy(..)) |
-				Call::Assets(pallet_assets::Call::transfer_ownership(..)) |
-				Call::Assets(pallet_assets::Call::set_team(..)) |
-				Call::Assets(pallet_assets::Call::set_metadata(..)) |
-				Call::Assets(pallet_assets::Call::clear_metadata(..)) |
-				Call::Uniques(pallet_uniques::Call::create(..)) |
-				Call::Uniques(pallet_uniques::Call::destroy(..)) |
-				Call::Uniques(pallet_uniques::Call::transfer_ownership(..)) |
-				Call::Uniques(pallet_uniques::Call::set_team(..)) |
-				Call::Uniques(pallet_uniques::Call::set_metadata(..)) |
-				Call::Uniques(pallet_uniques::Call::set_attribute(..)) |
-				Call::Uniques(pallet_uniques::Call::set_class_metadata(..)) |
-				Call::Uniques(pallet_uniques::Call::clear_metadata(..)) |
-				Call::Uniques(pallet_uniques::Call::clear_attribute(..)) |
-				Call::Uniques(pallet_uniques::Call::clear_class_metadata(..)) |
-				Call::Utility(..) |
-				Call::Multisig(..)
-			),
-			ProxyType::AssetManager => matches!(c,
-				Call::Assets(pallet_assets::Call::mint(..)) |
-				Call::Assets(pallet_assets::Call::burn(..)) |
-				Call::Assets(pallet_assets::Call::freeze(..)) |
-				Call::Assets(pallet_assets::Call::thaw(..)) |
-				Call::Assets(pallet_assets::Call::freeze_asset(..)) |
-				Call::Assets(pallet_assets::Call::thaw_asset(..)) |
-				Call::Uniques(pallet_uniques::Call::mint(..)) |
-				Call::Uniques(pallet_uniques::Call::burn(..)) |
-				Call::Uniques(pallet_uniques::Call::freeze(..)) |
-				Call::Uniques(pallet_uniques::Call::thaw(..)) |
-				Call::Uniques(pallet_uniques::Call::freeze_class(..)) |
-				Call::Uniques(pallet_uniques::Call::thaw_class(..)) |
-				Call::Utility(..) |
-				Call::Multisig(..)
-			),
-			ProxyType::Collator => matches!(c,
-				Call::CollatorSelection(..) |
-				Call::Utility(..) |
-				Call::Multisig(..)
-			)
-		}
-	}
-	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
-			(x, y) if x == y => true,
-			(ProxyType::Any, _) => true,
-			(_, ProxyType::Any) => false,
-			(ProxyType::Assets, ProxyType::AssetOwner) => true,
-			(ProxyType::Assets, ProxyType::AssetManager) => true,
-			_ => false,
-		}
-	}
-}
-
-impl pallet_proxy::Config for Runtime {
-	type Event = Event;
-	type Call = Call;
-	type Currency = Balances;
-	type ProxyType = ProxyType;
-	type ProxyDepositBase = ProxyDepositBase;
-	type ProxyDepositFactor = ProxyDepositFactor;
-	type MaxProxies = MaxProxies;
-	type WeightInfo = weights::pallet_proxy::WeightInfo<Runtime>;
-	type MaxPending = MaxPending;
-	type CallHasher = BlakeTwo256;
-	type AnnouncementDepositBase = AnnouncementDepositBase;
-	type AnnouncementDepositFactor = AnnouncementDepositFactor;
-}
+//TODO comment proxy
+// parameter_types! {
+// 	// One storage item; key size 32, value size 8; .
+// 	pub const ProxyDepositBase: Balance = deposit(1, 40);
+// 	// Additional storage item size of 33 bytes.
+// 	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+// 	pub const MaxProxies: u16 = 32;
+// 	// One storage item; key size 32, value size 16
+// 	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
+// 	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+// 	pub const MaxPending: u16 = 32;
+// }
+//
+// /// The type used to represent the kinds of proxying allowed.
+// #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+// pub enum ProxyType {
+// 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+// 	Any,
+// 	/// Can execute any call that does not transfer funds or assets.
+// 	NonTransfer,
+// 	/// Proxy with the ability to reject time-delay proxy announcements.
+// 	CancelProxy,
+// 	/// Assets proxy. Can execute any call from `assets`, **including asset transfers**.
+// 	Assets,
+// 	/// Owner proxy. Can execute calls related to asset ownership.
+// 	AssetOwner,
+// 	/// Asset manager. Can execute calls related to asset management.
+// 	AssetManager,
+// 	// Collator selection proxy. Can execute calls related to collator selection mechanism.
+// 	Collator,
+// }
+// impl Default for ProxyType {
+// 	fn default() -> Self {
+// 		Self::Any
+// 	}
+// }
+// impl InstanceFilter<Call> for ProxyType {
+// 	fn filter(&self, c: &Call) -> bool {
+// 		match self {
+// 			ProxyType::Any => true,
+// 			ProxyType::NonTransfer => !matches!(c,
+// 				Call::Balances(..) |
+// 				Call::Assets(pallet_assets::Call::transfer(..)) |
+// 				Call::Assets(pallet_assets::Call::transfer_keep_alive(..)) |
+// 				Call::Assets(pallet_assets::Call::force_transfer(..)) |
+// 				Call::Assets(pallet_assets::Call::transfer_ownership(..)) |
+// 				Call::Assets(pallet_assets::Call::approve_transfer(..)) |
+// 				Call::Assets(pallet_assets::Call::transfer_approved(..)) |
+// 				Call::Uniques(pallet_uniques::Call::transfer(..)) |
+// 				Call::Uniques(pallet_uniques::Call::transfer_ownership(..)) |
+// 				Call::Uniques(pallet_uniques::Call::approve_transfer(..))
+// 			),
+// 			ProxyType::CancelProxy => matches!(c,
+// 				Call::Proxy(pallet_proxy::Call::reject_announcement(..)) |
+// 				Call::Utility(..) |
+// 				Call::Multisig(..)
+// 			),
+// 			ProxyType::Assets => {
+// 				matches!(c, Call::Assets(..) | Call::Utility(..) | Call::Multisig(..) | Call::Uniques(..))
+// 			}
+// 			ProxyType::AssetOwner => matches!(c,
+// 				Call::Assets(pallet_assets::Call::create(..)) |
+// 				Call::Assets(pallet_assets::Call::destroy(..)) |
+// 				Call::Assets(pallet_assets::Call::transfer_ownership(..)) |
+// 				Call::Assets(pallet_assets::Call::set_team(..)) |
+// 				Call::Assets(pallet_assets::Call::set_metadata(..)) |
+// 				Call::Assets(pallet_assets::Call::clear_metadata(..)) |
+// 				Call::Uniques(pallet_uniques::Call::create(..)) |
+// 				Call::Uniques(pallet_uniques::Call::destroy(..)) |
+// 				Call::Uniques(pallet_uniques::Call::transfer_ownership(..)) |
+// 				Call::Uniques(pallet_uniques::Call::set_team(..)) |
+// 				Call::Uniques(pallet_uniques::Call::set_metadata(..)) |
+// 				Call::Uniques(pallet_uniques::Call::set_attribute(..)) |
+// 				Call::Uniques(pallet_uniques::Call::set_class_metadata(..)) |
+// 				Call::Uniques(pallet_uniques::Call::clear_metadata(..)) |
+// 				Call::Uniques(pallet_uniques::Call::clear_attribute(..)) |
+// 				Call::Uniques(pallet_uniques::Call::clear_class_metadata(..)) |
+// 				Call::Utility(..) |
+// 				Call::Multisig(..)
+// 			),
+// 			ProxyType::AssetManager => matches!(c,
+// 				Call::Assets(pallet_assets::Call::mint(..)) |
+// 				Call::Assets(pallet_assets::Call::burn(..)) |
+// 				Call::Assets(pallet_assets::Call::freeze(..)) |
+// 				Call::Assets(pallet_assets::Call::thaw(..)) |
+// 				Call::Assets(pallet_assets::Call::freeze_asset(..)) |
+// 				Call::Assets(pallet_assets::Call::thaw_asset(..)) |
+// 				Call::Uniques(pallet_uniques::Call::mint(..)) |
+// 				Call::Uniques(pallet_uniques::Call::burn(..)) |
+// 				Call::Uniques(pallet_uniques::Call::freeze(..)) |
+// 				Call::Uniques(pallet_uniques::Call::thaw(..)) |
+// 				Call::Uniques(pallet_uniques::Call::freeze_class(..)) |
+// 				Call::Uniques(pallet_uniques::Call::thaw_class(..)) |
+// 				Call::Utility(..) |
+// 				Call::Multisig(..)
+// 			),
+// 			ProxyType::Collator => matches!(c,
+// 				Call::CollatorSelection(..) |
+// 				Call::Utility(..) |
+// 				Call::Multisig(..)
+// 			)
+// 		}
+// 	}
+// 	fn is_superset(&self, o: &Self) -> bool {
+// 		match (self, o) {
+// 			(x, y) if x == y => true,
+// 			(ProxyType::Any, _) => true,
+// 			(_, ProxyType::Any) => false,
+// 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
+// 			(ProxyType::Assets, ProxyType::AssetManager) => true,
+// 			_ => false,
+// 		}
+// 	}
+// }
+//
+// impl pallet_proxy::Config for Runtime {
+// 	type Event = Event;
+// 	type Call = Call;
+// 	type Currency = Balances;
+// 	type ProxyType = ProxyType;
+// 	type ProxyDepositBase = ProxyDepositBase;
+// 	type ProxyDepositFactor = ProxyDepositFactor;
+// 	type MaxProxies = MaxProxies;
+// 	type WeightInfo = weights::pallet_proxy::WeightInfo<Runtime>;
+// 	type MaxPending = MaxPending;
+// 	type CallHasher = BlakeTwo256;
+// 	type AnnouncementDepositBase = AnnouncementDepositBase;
+// 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+// }
 
 parameter_types! {
 	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
@@ -626,6 +682,7 @@ parameter_types! {
 	pub const MaxCandidates: u32 = 1000;
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	pub const MaxInvulnerables: u32 = 100;
+	pub const ExecutiveBody: BodyId = BodyId::Executive;
 }
 
 /// We allow root and the Relay Chain council to execute privileged collator selection operations.
@@ -681,11 +738,20 @@ construct_runtime!(
 		// Handy utilities.
 		Utility: pallet_utility::{Pallet, Call, Event} = 40,
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
+
+		//TODO comment proxy
+		// Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
 
 		// The main stage. To include pallet-assets-freezer and pallet-uniques.
-		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 50,
-		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 51,
+		// 50 ksm
+		//TODO comment assets
+		// Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 50,
+		// Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 51,
+
+        //other pallets
+        // 55 ksm
+		//TODO comment contracts
+		// Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -807,6 +873,48 @@ impl_runtime_apis! {
 			opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
 		}
 	}
+
+	//TODO comment contracts
+	// impl pallet_contracts_rpc_runtime_api::ContractsApi<
+	// 	Block, AccountId, Balance, BlockNumber, Hash,
+	// >
+	// 	for Runtime
+	// {
+	// 	fn call(
+	// 		origin: AccountId,
+	// 		dest: AccountId,
+	// 		value: Balance,
+	// 		gas_limit: u64,
+	// 		input_data: Vec<u8>,
+	// 	) -> pallet_contracts_primitives::ContractExecResult {
+	// 		Contracts::bare_call(origin, dest, value, gas_limit, input_data, true)
+	// 	}
+	//
+	// 	fn instantiate(
+	// 		origin: AccountId,
+	// 		endowment: Balance,
+	// 		gas_limit: u64,
+	// 		code: pallet_contracts_primitives::Code<Hash>,
+	// 		data: Vec<u8>,
+	// 		salt: Vec<u8>,
+	// 	) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
+	// 	{
+	// 		Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
+	// 	}
+	//
+	// 	fn get_storage(
+	// 		address: AccountId,
+	// 		key: [u8; 32],
+	// 	) -> pallet_contracts_primitives::GetStorageResult {
+	// 		Contracts::get_storage(address, key)
+	// 	}
+	//
+	// 	fn rent_projection(
+	// 		address: AccountId,
+	// 	) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
+	// 		Contracts::rent_projection(address)
+	// 	}
+	// }
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {

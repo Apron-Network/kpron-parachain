@@ -2,13 +2,13 @@ use cumulus_primitives_core::ParaId;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup, Properties};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use sp_core::crypto::Ss58Codec;
 use kpron_runtime::constants::currency::{EXISTENTIAL_DEPOSIT, SYMBOL, DECIMALS};
 use kpron_runtime::constants::address::{SS58_PREFIX};
 use statemint_common::{
-	BlockNumber, Signature, AccountId, Balance, Index, Hash, AuraId, Header,
+	Signature, AccountId, AuraId,
 };
 
 /// Specialized `ChainSpec` for the normal Kpron runtime.
@@ -250,30 +250,30 @@ fn generate_genesis(
 ) -> kpron_runtime::GenesisConfig {
 	// TODO check invulnerables balance > STATEMINE_ED * 16
 	kpron_runtime::GenesisConfig {
-		frame_system: kpron_runtime::SystemConfig {
+		system: kpron_runtime::SystemConfig {
 			code: kpron_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 			changes_trie_config: Default::default(),
 		},
-		pallet_balances: kpron_runtime::BalancesConfig {
+		balances: kpron_runtime::BalancesConfig {
 			balances: endowed_accounts,
 		},
 		parachain_info: kpron_runtime::ParachainInfoConfig { parachain_id: id },
-		pallet_collator_selection: kpron_runtime::CollatorSelectionConfig {
+		collator_selection: kpron_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16, //16KPN
 			..Default::default()
 		},
-		pallet_session: kpron_runtime::SessionConfig {
+		session: kpron_runtime::SessionConfig {
 			keys: invulnerables.iter().cloned().map(|(acc, aura)| (
 				acc.clone(), // account id
 				acc.clone(), // validator id
 				kpron_session_keys(aura), // session keys
 			)).collect()
 		},
-		pallet_aura: Default::default(),
-		cumulus_pallet_aura_ext: Default::default(),
+		aura: Default::default(),
+		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 	}
 }
@@ -286,31 +286,30 @@ fn test_generate_genesis(
 ) -> kpron_runtime::GenesisConfig {
 	// TODO check invulnerables balance > EXISTENTIAL_DEPOSIT * 16
 	kpron_runtime::GenesisConfig {
-		pallet_sudo: kpron_runtime::SudoConfig { key: root_key },
-		frame_system: kpron_runtime::SystemConfig {
+		system: kpron_runtime::SystemConfig {
 			code: kpron_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 			changes_trie_config: Default::default(),
 		},
-		pallet_balances: kpron_runtime::BalancesConfig {
+		balances: kpron_runtime::BalancesConfig {
 			balances: endowed_accounts,
 		},
 		parachain_info: kpron_runtime::ParachainInfoConfig { parachain_id: id },
-		pallet_collator_selection: kpron_runtime::CollatorSelectionConfig {
+		collator_selection: kpron_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16, // 16KPN
 			..Default::default()
 		},
-		pallet_session: kpron_runtime::SessionConfig {
+		session: kpron_runtime::SessionConfig {
 			keys: invulnerables.iter().cloned().map(|(acc, aura)| (
 				acc.clone(), // account id
 				acc.clone(), // validator id
 				kpron_session_keys(aura), // session keys
 			)).collect()
 		},
-		pallet_aura: Default::default(),
-		cumulus_pallet_aura_ext: Default::default(),
+		aura: Default::default(),
+		aura_ext: Default::default(),
 		parachain_system: Default::default(),
 	}
 }
@@ -319,7 +318,7 @@ fn chain_properties() -> Option<Properties> {
 	let mut p = Properties::new();
 	p.insert("tokenSymbol".into(), SYMBOL.into());
 	p.insert("tokenDecimals".into(), DECIMALS.into());
-	p.insert("ss58Format".into(), SS58Prefix.into());
+	p.insert("ss58Format".into(), SS58_PREFIX.into());
 	Some(p)
 }
 
