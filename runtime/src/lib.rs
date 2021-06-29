@@ -64,8 +64,9 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 use pallet_xcm::{XcmPassthrough, EnsureXcm, IsMajorityOfBody};
 
-/// Import others pallet.
-use pallet_contracts::weights::WeightInfo;
+//TODO temporary remove contract pallet, wait kusama support
+// /// Import others pallet.
+// use pallet_contracts::weights::WeightInfo;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -132,51 +133,52 @@ parameter_types! {
 	pub const SS58Prefix: u8 = constants::SS58_PREFIX;
 }
 
-parameter_types! {
-	pub TombstoneDeposit: Balance = deposit(
-		1,
-		<pallet_contracts::Pallet<Runtime>>::contract_info_size(),
-	);
-	pub DepositPerContract: Balance = TombstoneDeposit::get();
-	pub const DepositPerStorageByte: Balance = deposit(0, 1);
-	pub const DepositPerStorageItem: Balance = deposit(1, 0);
-	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
-	pub const SurchargeReward: Balance = 150 * MILLICENTS;
-	pub const SignedClaimHandicap: u32 = 2;
-	pub const MaxValueSize: u32 = 16 * 1024;
-	// The lazy deletion runs inside on_initialize.
-	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
-		RuntimeBlockWeights::get().max_block;
-	// The weight needed for decoding the queue should be less or equal than a fifth
-	// of the overall weight dedicated to the lazy deletion.
-	pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
-			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
-			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
-		)) / 5) as u32;
-	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
-}
-
-impl pallet_contracts::Config for Runtime {
-	type Time = Timestamp;
-	type Randomness = RandomnessCollectiveFlip;
-	type Currency = Balances;
-	type Event = Event;
-	type RentPayment = ();
-	type SignedClaimHandicap = SignedClaimHandicap;
-	type TombstoneDeposit = TombstoneDeposit;
-	type DepositPerContract = DepositPerContract;
-	type DepositPerStorageByte = DepositPerStorageByte;
-	type DepositPerStorageItem = DepositPerStorageItem;
-	type RentFraction = RentFraction;
-	type SurchargeReward = SurchargeReward;
-	type CallStack = [pallet_contracts::Frame<Self>; 31];
-	type WeightPrice = pallet_transaction_payment::Module<Self>;
-	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = ();
-	type DeletionQueueDepth = DeletionQueueDepth;
-	type DeletionWeightLimit = DeletionWeightLimit;
-	type Schedule = Schedule;
-}
+//TODO temporary remove contract pallet, wait kusama support
+// parameter_types! {
+// 	pub TombstoneDeposit: Balance = deposit(
+// 		1,
+// 		<pallet_contracts::Pallet<Runtime>>::contract_info_size(),
+// 	);
+// 	pub DepositPerContract: Balance = TombstoneDeposit::get();
+// 	pub const DepositPerStorageByte: Balance = deposit(0, 1);
+// 	pub const DepositPerStorageItem: Balance = deposit(1, 0);
+// 	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
+// 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
+// 	pub const SignedClaimHandicap: u32 = 2;
+// 	pub const MaxValueSize: u32 = 16 * 1024;
+// 	// The lazy deletion runs inside on_initialize.
+// 	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
+// 		RuntimeBlockWeights::get().max_block;
+// 	// The weight needed for decoding the queue should be less or equal than a fifth
+// 	// of the overall weight dedicated to the lazy deletion.
+// 	pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+// 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
+// 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
+// 		)) / 5) as u32;
+// 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
+// }
+//
+// impl pallet_contracts::Config for Runtime {
+// 	type Time = Timestamp;
+// 	type Randomness = RandomnessCollectiveFlip;
+// 	type Currency = Balances;
+// 	type Event = Event;
+// 	type RentPayment = ();
+// 	type SignedClaimHandicap = SignedClaimHandicap;
+// 	type TombstoneDeposit = TombstoneDeposit;
+// 	type DepositPerContract = DepositPerContract;
+// 	type DepositPerStorageByte = DepositPerStorageByte;
+// 	type DepositPerStorageItem = DepositPerStorageItem;
+// 	type RentFraction = RentFraction;
+// 	type SurchargeReward = SurchargeReward;
+// 	type CallStack = [pallet_contracts::Frame<Self>; 31];
+// 	type WeightPrice = pallet_transaction_payment::Module<Self>;
+// 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+// 	type ChainExtension = ();
+// 	type DeletionQueueDepth = DeletionQueueDepth;
+// 	type DeletionWeightLimit = DeletionWeightLimit;
+// 	type Schedule = Schedule;
+// }
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
@@ -532,7 +534,8 @@ construct_runtime!(
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
 
         // other pallets
-		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
+		//TODO temporary remove contract pallet, wait kusama support
+		// Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -655,46 +658,47 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_contracts_rpc_runtime_api::ContractsApi<
-		Block, AccountId, Balance, BlockNumber, Hash,
-	>
-		for Runtime
-	{
-		fn call(
-			origin: AccountId,
-			dest: AccountId,
-			value: Balance,
-			gas_limit: u64,
-			input_data: Vec<u8>,
-		) -> pallet_contracts_primitives::ContractExecResult {
-			Contracts::bare_call(origin, dest, value, gas_limit, input_data, true)
-		}
-
-		fn instantiate(
-			origin: AccountId,
-			endowment: Balance,
-			gas_limit: u64,
-			code: pallet_contracts_primitives::Code<Hash>,
-			data: Vec<u8>,
-			salt: Vec<u8>,
-		) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
-		{
-			Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
-		}
-
-		fn get_storage(
-			address: AccountId,
-			key: [u8; 32],
-		) -> pallet_contracts_primitives::GetStorageResult {
-			Contracts::get_storage(address, key)
-		}
-
-		fn rent_projection(
-			address: AccountId,
-		) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
-			Contracts::rent_projection(address)
-		}
-	}
+	//TODO temporary remove contract pallet, wait kusama support
+	// impl pallet_contracts_rpc_runtime_api::ContractsApi<
+	// 	Block, AccountId, Balance, BlockNumber, Hash,
+	// >
+	// 	for Runtime
+	// {
+	// 	fn call(
+	// 		origin: AccountId,
+	// 		dest: AccountId,
+	// 		value: Balance,
+	// 		gas_limit: u64,
+	// 		input_data: Vec<u8>,
+	// 	) -> pallet_contracts_primitives::ContractExecResult {
+	// 		Contracts::bare_call(origin, dest, value, gas_limit, input_data, true)
+	// 	}
+	//
+	// 	fn instantiate(
+	// 		origin: AccountId,
+	// 		endowment: Balance,
+	// 		gas_limit: u64,
+	// 		code: pallet_contracts_primitives::Code<Hash>,
+	// 		data: Vec<u8>,
+	// 		salt: Vec<u8>,
+	// 	) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
+	// 	{
+	// 		Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
+	// 	}
+	//
+	// 	fn get_storage(
+	// 		address: AccountId,
+	// 		key: [u8; 32],
+	// 	) -> pallet_contracts_primitives::GetStorageResult {
+	// 		Contracts::get_storage(address, key)
+	// 	}
+	//
+	// 	fn rent_projection(
+	// 		address: AccountId,
+	// 	) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
+	// 		Contracts::rent_projection(address)
+	// 	}
+	// }
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {
